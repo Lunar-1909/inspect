@@ -12,7 +12,7 @@
 
 /* THE UPDATE CHECKER IS ADDED DURING COMMIT PREP, THERE MAY BE REDUNDANT CODE, DO NOT TOUCH */
 
-(()  {
+(() => {
     let iframe = document.querySelector("iframe");
     /* By CryptoDude3 */
     if (window.fetch.call.toString() == 'function call() { [native code] }') {

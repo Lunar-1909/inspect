@@ -1,4 +1,4 @@
-(() => {
+(() => 
     let iframe = document.querySelector("iframe");
     /* By CryptoDude3 */
     if (window.fetch.call.toString() == 'function call() { [native code] }') {

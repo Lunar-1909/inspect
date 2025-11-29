@@ -1,0 +1,1577 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<title>Tài Xỉu - Mobile (Full Tính năng)</title>
+<style>
+/* Global Styles & Variables */
+:root{
+  --bg:#0f0b09; --panel:#241914; --accent:#f5c842; --muted:#bba; --text:#fff;
+}
+*{box-sizing:border-box;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif}
+html,body{height:100%;margin:0}
+body{
+  background:linear-gradient(180deg,#3b2618 0%, #0f0b09 100%);
+  color:var(--text); display:flex; align-items:center; justify-content:center; padding:10px;
+  overflow: hidden; /* Prevent body scroll */
+}
+.app{
+  width:100%; max-width:520px; height:calc(100vh - 20px);
+  background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.15));
+  border-radius:14px; box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+  overflow:hidden; display:flex; flex-direction:column;
+}
+.header{
+  padding:8px 12px; display:flex; align-items:center; justify-content:space-between; gap:8px;
+  background:rgba(0,0,0,0.18);
+  position: relative;
+  z-index: 21; /* Above everything except sheets */
+}
+
+/* Chatbox Layering & Height Adjustment (3 lines max) */
+.chatbox{
+  padding:6px 12px; display:flex; flex-direction:column; gap:6px; background:transparent;
+  transition: opacity 0.3s ease, max-height 0.3s ease, margin 0.3s ease;
+  position: relative;
+  z-index: 10001; /* Layer đứng đầu */
+}
+.chatbox.hidden-chat {
+    opacity: 0;
+    max-height: 0;
+    padding-top: 0; 
+    padding-bottom: 0; 
+    margin-top: -6px; /* Adjust margin to close gap */
+    margin-bottom: -6px; 
+    pointer-events: none;
+}
+.chat-log{
+  min-height: 60px; /* Adjusted for 3 lines */
+  max-height: 60px; /* Adjusted for 3 lines */
+  overflow-y:auto; 
+  overflow-x:hidden; 
+  font-size:13px; 
+  color:#e8e6e3; 
+  padding:6px; 
+  background:rgba(0,0,0,0.25); 
+  border-radius:8px;
+  scrollbar-width: thin;
+  scrollbar-color: #555 #222;
+}
+
+.chat-input{display:flex; gap:6px}
+.chat-input input{flex:1; padding:8px 10px; border-radius:8px; border:0; outline:0; background:rgba(255,255,255,0.04); color:var(--text); font-size:14px}
+.header .title{font-weight:800}
+.header .balanceWrap{display:flex;align-items:center;gap:8px}
+.btnSmall{background:rgba(255,255,255,0.04);border:0;padding:6px 8px;border-radius:8px;color:#fff;cursor:pointer;font-weight:700}
+/* MAIN AREA: Now allows scrolling */
+.main{
+    flex:1 1 auto; 
+    display:flex; 
+    flex-direction:column; 
+    align-items:center; 
+    justify-content:space-between; 
+    padding:10px;
+    overflow-y: auto; /* Enable vertical scrolling */
+    -webkit-overflow-scrolling: touch; /* Improved touch scrolling on iOS */
+}
+.sides{width:100%; display:flex; gap:8px; padding:0 6px}
+.side{flex:1; background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.15)); border-radius:10px; padding:10px; text-align:center; box-shadow: inset 0 4px 12px rgba(0,0,0,0.35)}
+.side.active{box-shadow:0 0 18px rgba(245,200,66,0.18); transform:translateY(-4px)}
+.label{font-weight:700; font-size:18px; margin-bottom:6px}
+.amount{color:var(--accent); font-weight:700; font-size:16px; margin-bottom:8px}
+.pick{background:var(--accent); color:#222; border:0; font-weight:700; padding:8px 12px; border-radius:10px; cursor:pointer}
+.center{width:100%; background:linear-gradient(180deg, rgba(0,0,0,0.22), rgba(0,0,0,0.15)); border-radius:12px; padding:12px; margin-top:10px; display:flex; flex-direction:column; align-items:center; gap:8px}
+
+/* Dice Container and Cup Styles */
+.dice-container{
+  position: relative;
+  width: 230px; /* CONTAINER_WIDTH */
+  height: 90px; /* CONTAINER_HEIGHT */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 5px;
+  overflow: visible; /* Allows cup to be dragged off the small 230x90 area */
+}
+.dice-circle {
+  position: relative;
+  width: 230px;
+  height: 90px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: rgba(0,0,0,0.1);
+  padding: 10px 0;
+  box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+}
+.die{
+  width:58px; height:58px; border-radius:10px; background:#fff; color:#111; 
+  display:flex; align-items:center; justify-content:center; font-size:32px; 
+  box-shadow:0 6px 14px rgba(0,0,0,0.6); transition:transform .45s ease;
+  flex-shrink: 0;
+}
+/* NEW CIRCULAR METALLIC CUP STYLE (180x180) */
+.dice-cup {
+  position: absolute;
+  width: 180px; /* CUP_WIDTH */
+  height: 180px; /* CUP_HEIGHT */
+  border-radius: 50%; 
+  background: 
+    radial-gradient(circle at 45% 45%, #fffde4 0%, #ffc842 15%, #b08d0a 50%, #704f06 100%);
+  border: 8px solid #f0e68c; 
+  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.9), inset 0 8px 30px rgba(255, 255, 255, 0.4), inset 0 -5px 10px rgba(0,0,0,0.3);
+  cursor: grab;
+  touch-action: none; 
+  z-index: 6; 
+  transition: left 0.3s ease, top 0.3s ease; /* For smooth snap back */
+}
+.dice-cup.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Result Overlay (Removed, but keeping the container for structural consistency if needed later) */
+.result-display-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* Adjusted padding for the result wrap to ensure clear separation from timer */
+    padding: 0 10px; 
+}
+/* Result Overlay is now completely hidden and its logic moved to handleDiceReveal */
+#resultOverlay {
+    display: none; 
+}
+
+
+.result{font-weight:800; font-size:22px; margin-top:6px; color:var(--accent); position: relative; padding: 5px 10px;}
+.info-row{display:flex; gap:10px; align-items:center; justify-content:center; flex-wrap:wrap}
+.balance{color:var(--muted); font-size:14px}
+.timer{font-size:14px; color:#ffd; font-weight:700; background:rgba(0,0,0,0.18); padding:6px 10px; border-radius:8px}
+.jackpot{color:#ffd700; font-weight:800; font-size:15px; text-shadow:0 2px 8px rgba(255,215,0,0.2)}
+
+/* Controls & Dimming */
+.controls{width:100%; padding:10px 6px 18px 6px; display:flex; flex-direction:column; gap:8px; align-items:center; transition: opacity 0.3s ease}
+.controls.locked-controls {
+  pointer-events: none;
+  opacity: 0.5;
+}
+.bet-panel{display:flex; gap:8px; flex-wrap:wrap; justify-content:center}
+.chip{background:rgba(255,255,255,0.06); border:0; padding:8px 12px; border-radius:8px; color:var(--text); font-weight:700; cursor:pointer}
+.actions{display:flex; gap:8px; justify-content:center; width:100%}
+.btn{padding:10px 16px; border-radius:10px; border:0; font-weight:800; cursor:pointer}
+#place{background:#ffd166; color:#111}
+#cancel{background:#c0392b; color:#fff}
+#reset{background:#666; color:#fff}
+#allin{background:#6f2dd6; color:#fff}
+.note{font-size:12px; color:var(--muted); text-align:center; padding:0 10px}
+.small{font-size:12px;color:var(--muted)}
+
+/* Sheet Styles */
+.sheet-backdrop{
+    position:fixed; left:0; right:0; top:0; bottom:0; 
+    background:rgba(0,0,0,0.65); 
+    display:none; 
+    align-items:flex-end; 
+    justify-content:center; 
+    z-index:9999; /* Ensure sheets are below top-level chat */
+} 
+.sheet{width:100%; max-width:520px; background:linear-gradient(180deg,#111,#1a1410); border-top-left-radius:14px; border-top-right-radius:14px; padding:14px; box-shadow:0 -8px 30px rgba(0,0,0,0.6);}
+.sheet .title{font-weight:800; margin-bottom:8px; text-align:center; padding-bottom:5px; border-bottom:1px solid rgba(255,255,255,0.1);}
+.sheet .preset{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px}
+.preset button{flex:1; min-width:98px; padding:8px; border-radius:8px; border:0; background:rgba(255,255,255,0.03); color:#fff; font-weight:700; cursor:pointer}
+.sheet .other{display:flex; gap:8px; margin-bottom:8px}
+.sheet input[type="number"], .sheet input[type="text"]{flex:1; padding:8px; border-radius:8px; border:0; outline:0; background:rgba(255,255,255,0.03); color:#fff}
+.sheet .pay-row{display:flex; gap:8px; justify-content:space-between; align-items:center}
+.sheet .loader{width:24px; height:24px; border-radius:50%; border:3px solid rgba(255,255,255,0.08); border-top-color:var(--accent); animation:spin 1s linear infinite; display:inline-block; vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+.sheet .msg{font-size:13px; color:var(--muted)}
+.carrier-btn{
+    flex:1; padding:10px 5px; border-radius:8px; border:1px solid #333; font-weight:700; cursor:pointer;
+    background:rgba(255,255,255,0.03); color:#fff;
+    transition: all 0.2s ease;
+}
+.carrier-btn.selected{
+    border-color: var(--accent);
+    background:rgba(245,200,66,0.1);
+    color:var(--accent);
+    box-shadow: 0 0 10px rgba(245,200,66,0.5);
+}
+.tab-btn-active {
+  background: var(--accent) !important;
+  color: #111 !important;
+  box-shadow: 0 0 12px rgba(245,200,66,0.3);
+  transform: translateY(-1px);
+}
+/* Modified CICLE_CONTAINER for vertical stacking */
+.cicle-container{
+    padding: 6px 12px 10px; 
+    text-align: center;
+    /* Removed flex properties to allow stacking of control row and details */
+}
+
+#patternControlsRow {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    width: 100%;
+}
+
+#patternToggleWrap {
+    flex-grow: 1; /* Allows the button wrap to take available space */
+}
+#togglePattern{
+    width: 100%;
+    background: linear-gradient(90deg, #6f2dd6, #4a86e8) !important;
+    color: #fff !important;
+    border: 1px solid #6f2dd6;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    transition: all 0.2s ease;
+    font-size:14px; padding:8px;
+}
+#openSettingsBelow {
+    background:#555 !important; 
+    color:#fff !important; 
+    padding:8px 8px !important; 
+    font-size:16px !important; 
+    width: 38px !important; 
+    height: 38px !important; 
+    flex-shrink: 0;
+}
+#togglePattern.active{
+    background: #e74c3c !important;
+}
+.pattern-def{
+    font-size: 13px; 
+    color: #ffd; 
+    background: rgba(245,200,66,0.1);
+    padding: 8px;
+    border-radius: 8px;
+    margin-top: 8px;
+    text-align: left;
+    border: 1px solid var(--accent);
+}
+.cicle-item-T{
+    background-color: #e74c3c; 
+}
+.cicle-item-X{
+    background-color: #3498db; 
+}
+.cicle-item-U{
+    background-color: #555; 
+}
+.cicle-graph-container{
+    border: 1px solid #444;
+    border-radius: 8px;
+    background: #111;
+    margin-top: 8px;
+    padding: 5px;
+}
+.cicle-display-row {
+    display: flex; 
+    flex-wrap: nowrap; 
+    gap: 4px; 
+    justify-content: flex-end; 
+    overflow-x: auto;
+    padding-bottom: 5px;
+}
+#supportLinkBtn{
+    display: block; 
+    text-decoration: none;
+    background: #2ecc71; 
+    color: #111;
+    font-weight: 800;
+    padding: 12px;
+    border-radius: 10px;
+    margin-top: 15px;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(46, 204, 113, 0.4);
+}
+.chat-input input:focus {
+    outline: 2px solid var(--accent);
+}
+
+
+/* small responsive tweak */
+@media(min-width:520px){ .app{height:720px} }
+</style>
+</head>
+<body>
+<div class="app" role="application" aria-label="Tài Xỉu mobile V9">
+  <div class="header">
+    <div class="title">Tài Xỉu • v9.3.0</div>
+    <div class="balanceWrap">
+      <div class="small">Số dư: <strong id="hdrBalance">1,000,000₫</strong></div>
+      <!-- Original Settings button placeholder removed, only openTransaction remains -->
+      <button id="openTransaction" class="btnSmall" aria-haspopup="dialog">Giao dịch</button>
+    </div>
+  </div>
+
+  <!-- Chatbox is now the toggled element, Z-INDEX 10001 -->
+  <div id="chatbox" class="chatbox"> 
+    <div class="chat-log" id="chatlog" role="log"></div>
+    <div class="chat-input">
+        <input id="chatinput" placeholder="💬 Tin nhắn" aria-label="Chat input"/>
+        <button id="sendChat" class="btnSmall">Gửi</button>
+    </div>
+  </div>
+  <!-- End Chatbox -->
+
+  <!-- Cầu History (Toggleable and decorated) -->
+  <div id="patternContainer" class="cicle-container">
+    <!-- Row for buttons: apply flex layout here to ensure they stay on one line -->
+    <div id="patternControlsRow">
+        <!-- Nút Cài đặt (⚙️) mới -->
+        <button id="openSettingsBelow" class="btnSmall" aria-haspopup="dialog">⚙️</button>
+        
+        <div id="patternToggleWrap">
+            <button id="togglePattern" class="btn">XEM CẦU BỆT</button>
+        </div>
+    </div>
+    
+    <!-- Details section stacks below the control row -->
+    <div id="patternDetails" style="display: none; width: 100%; margin-top: 5px;">
+        <div class="pattern-def" id="patternDefinition">
+            <strong style="color:var(--accent);">Cầu Bệt</strong> Là thuật toán khi kết quả dồn dập chỉ về Tài (T) hoặc Xỉu (X). Các tay chơi thường chờ 3 ván để xác định có phải cầu bệt hay không.
+        </div>
+        
+        <div class="cicle-graph-container">
+            <div style="font-size: 11px; color: #999; text-align: right; padding-bottom: 3px;">Đồ thị xu hướng (20 ván)</div>
+            <canvas id="patternChart" height="100"></canvas>
+        </div>
+
+        <div style="font-size: 13px; color: var(--muted); font-weight: 700; margin-top: 8px;">LỊCH SỬ CHI TIẾT</div>
+        <div id="cicleDisplay" class="cicle-display-row" style="padding-top: 5px;">
+          <!-- History circles will go here -->
+        </div>
+    </div>
+  </div>
+  
+  <!-- MAIN AREA: Now scrollable to prevent controls from being clipped -->
+  <div class="main" id="mainGameArea">
+    <div class="sides">
+      <div class="side" data-side="tai" id="side-tai">
+        <div class="label">TÀI</div>
+        <div class="amount" id="amt-tai">0</div>
+        <button class="pick" data-side="tai" id="pick-tai">CHỌN</button>
+      </div>
+      <div class="side" data-side="xiu" id="side-xiu">
+        <div class="label">XỈU</div>
+        <div class="amount" id="amt-xiu">0</div>
+        <button class="pick" data-side="xiu" id="pick-xiu">CHỌN</button>
+      </div>
+    </div>
+
+    <div class="center" id="center">
+      
+      <!-- Dice Container (230x90) -->
+      <div class="dice-container" id="diceContainer">
+        <div class="dice-circle">
+          <div class="die" id="d1">⚀</div>
+          <div class="die" id="d2">⚀</div>
+          <div class="die" id="d3">⚀</div>
+        </div>
+        <!-- Result Overlay is now completely hidden and its logic moved to handleDiceReveal -->
+        <div id="revealOverlay"></div> 
+        <!-- Cup sits on top, the draggable element -->
+        <div class="dice-cup" id="diceCup"></div>
+      </div>
+      <!-- End Dice Container -->
+
+      <div class="info-row">
+        <!-- Result Display -->
+        <div class="result-display-wrap">
+            <div class="result" id="result">Kết quả: -</div>
+            <!-- Result Overlay is removed from here -->
+        </div>
+        <!-- Timer is NOT covered by the overlay -->
+        <div class="timer" id="timer">60</div>
+      </div>
+
+      <div class="info-row">
+        <div class="balance">Số dư: <span id="balance">1,000,000</span> ₫</div>
+        <div class="jackpot" id="jackpot"></div>
+      </div>
+
+      <div class="controls" id="controls">
+        <div class="bet-panel" id="betPanel">
+          <button class="chip" data-value="1000">1K</button>
+          <button class="chip" data-value="10000">10K</button>
+          <button class="chip" data-value="50000">50K</button>
+          <button class="chip" data-value="100000">100K</button>
+          <button class="chip" data-value="500000">500K</button>
+          <button class="chip" data-value="1000000">1M</button>
+          
+          <!-- CUSTOM BET INPUT -->
+          <div id="customBetInputWrap" style="display:flex; gap:4px; align-items:center; background:rgba(255,255,255,0.06); border-radius:8px; padding:4px 8px;">
+            <input id="customBetInput" type="number" min="1000" placeholder="Khác (₫)" aria-label="Nhập số tiền cược khác" style="width:100px; padding:4px; border-radius:5px; border:1px solid #444; background:#111; color:#fff; font-size:13px; text-align:right;" />
+            <button id="addCustomBet" class="chip" style="padding:4px 8px; font-size:13px; background:#4a86e8;">Thêm</button>
+          </div>
+          <!-- END CUSTOM BET INPUT -->
+          
+        </div>
+
+        <div class="actions">
+          <button id="allin" class="btn">ALL IN</button>
+          <button id="reset" class="btn">RESET</button>
+          <button id="place" class="btn" style="min-width:120px">ĐẶT</button>
+          <button id="cancel" class="btn">HỦY</button>
+        </div>
+
+        <div class="note" id="note">Chọn Tài hoặc Xỉu → đặt chip/nhập Khác → nhấn ĐẶT để cố định. Khi còn ≤1s hệ thống tự khoá.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Transaction sheet -->
+<div class="sheet-backdrop" id="transactionBackdrop" aria-hidden="true">
+  <div class="sheet" role="dialog" aria-modal="true" aria-label="Giao dịch">
+    <!-- Tab Navigation -->
+    <div style="display:flex; justify-content:space-around; gap:10px; margin-bottom:15px; border-bottom:1px solid #333; padding-bottom:10px;">
+      <button id="tabDeposit" class="btnSmall tab-btn-active" data-tab="deposit" style="font-size:16px;">Nạp tiền</button>
+      <button id="tabWithdraw" class="btnSmall" data-tab="withdraw" style="font-size:16px;">Rút tiền</button>
+      <button id="tabSupport" class="btnSmall" data-tab="support" style="font-size:16px;">Hỗ trợ</button>
+    </div>
+    
+    <!-- Tab Content Container -->
+    <div id="tabContentContainer">
+    
+      <!-- 1. DEPOSIT TAB -->
+      <div id="deposit-tab" data-tab-content>
+        <div class="title">💰 NẠP TIỀN</div>
+        
+        <!-- State 1: Amount and Method Selection (Initial) -->
+        <div id="deposit-state-amount">
+          <div class="preset" id="presetButtons">
+            <button data-amount="10000">10K</button>
+            <button data-amount="20000">20K</button>
+            <button data-amount="50000">50K</button>
+            <button data-amount="100000">100K</button>
+            <button data-amount="200000">200K</button>
+            <button data-amount="500000">500K</button>
+          </div>
+          <div class="other">
+            <button id="btnOther" class="btnSmall">Khác</button>
+            <input id="otherAmount" type="number" placeholder="Nhập số (₫)" aria-label="Số tiền khác" />
+          </div>
+          
+          <div style="margin-top:12px; font-weight:700; color:var(--accent); text-align:center;">Chọn Phương Thức Thanh Toán:</div>
+          <div class="actions" style="margin-top:8px;">
+            <button id="selectCard" class="btn" style="background:#f39c12; color:#111; width:48%">Nạp thẻ cào</button>
+            <button id="selectTransfer" class="btn" style="background:#3498db; color:#fff; width:48%">Ví điện tử (CK)</button>
+          </div>
+        </div>
+        
+        <!-- State 2: Scratch Card Deposit -->
+        <div id="deposit-state-card" style="display:none;">
+          <div class="msg" id="cardMsg" style="margin-bottom:10px;">Vui lòng chọn nhà mạng và nhập thông tin thẻ.</div>
+          
+          <div style="font-weight:700; margin-bottom:6px;">Chọn Nhà Mạng: <span id="carrierDisplay" style="color:var(--accent); font-size:14px;">(Chưa chọn)</span></div>
+          <div class="carrier-select" id="carrierSelect" style="display:flex; gap:8px; margin-bottom:12px;">
+            <button data-carrier="Viettel" class="carrier-btn">Viettel</button>
+            <button data-carrier="Vinaphone" class="carrier-btn">Vinaphone</button>
+            <button data-carrier="Mobifone" class="carrier-btn">Mobifone</button>
+          </div>
+          
+          <input id="cardSeri" type="text" placeholder="Số Seri Thẻ (tối đa 15 số)" aria-label="Số Seri Thẻ" style="margin-bottom:8px; width:100%;" />
+          <input id="cardCode" type="text" placeholder="Mã Thẻ Cào (tối đa 15 số)" aria-label="Mã Thẻ Cào" style="margin-bottom:12px; width:100%;" />
+
+          <div class="pay-row">
+            <button id="backFromCard" class="btn" style="background:#666; color:#fff;">← Quay lại</button>
+            <button id="submitCard" class="btn" style="background:#2ecc71; color:#fff;">Nạp tiền</button>
+          </div>
+        </div>
+        
+        <!-- State 3: E-wallet/Transfer Deposit -->
+        <div id="deposit-state-transfer" style="display:none;">
+          <div class="msg" style="margin-bottom:10px; font-weight:700;">
+            Xác nhận nạp số tiền <strong id="transferAmountDisplay" style="color:#27ae60;">0₫</strong>
+          </div>
+          <div style="background:rgba(255,255,255,0.05); padding:12px; border-radius:8px; text-align:center; font-size:15px; margin-bottom:15px;">
+            Nạp tiền vào tài khoản có số điện thoại <strong style="color:var(--accent);">0339190911</strong>
+          </div>
+          <div class="msg" style="margin-bottom:15px; text-align:center;">Vui lòng chuyển khoản chính xác số tiền trên, sau đó nhấn **HOÀN THÀNH**</div>
+          
+          <div class="pay-row" style="justify-content:space-around;">
+            <button id="cancelTransfer" class="btn" style="background:#c0392b; color:#fff; min-width:120px;">HỦY</button>
+            <button id="completeTransfer" class="btn" style="background:#27ae60; color:#fff; min-width:120px;">HOÀN THÀNH</button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 2. WITHDRAW TAB -->
+      <div id="withdraw-tab" data-tab-content style="display:none;">
+        <div class="title">💸 RÚT TIỀN</div>
+        <div style="padding:15px; text-align:center; background:rgba(255,255,255,0.05); border-radius:10px;">
+          <p style="margin-bottom:10px; font-weight:700;">Nhập thông tin và số tiền muốn rút.</p>
+          <input id="withdrawAccountInput" type="text" placeholder="Số tài khoản / SĐT Ví" aria-label="Số tài khoản hoặc SĐT Ví" style="width:100%; margin-bottom:10px;" />
+          <input id="withdrawAmountInput" type="number" placeholder="Số tiền muốn rút (Tối thiểu 50K)" aria-label="Số tiền muốn rút" style="width:100%; margin-bottom:15px;" />
+          <button id="submitWithdraw" class="btn" style="background:#e74c3c; color:#fff; width:100%; margin-top:5px;">Yêu cầu Rút</button>
+        </div>
+        <div class="msg" style="margin-top:10px; color:#e74c3c; text-align:center;">Lưu ý: Số dư hiện tại là: <span id="currentBalanceWithdraw" style="font-weight:bold;">0₫</span>. Phí rút 5%.</div>
+      </div>
+      
+      <!-- 3. SUPPORT TAB -->
+      <div id="support-tab" data-tab-content style="display:none;">
+        <div class="title">💬 HỖ TRỢ KHÁCH HÀNG</div>
+        <div style="padding:15px; background:rgba(255,255,255,0.05); border-radius:10px; text-align:center;">
+          <p style="font-weight:700; color:#fff; margin-bottom:0;">Vui lòng liên hệ fanpage để được hỗ trợ.</p>
+          <button id="supportLinkBtn" class="btn" style="font-weight:800; cursor:pointer; width: 100%; margin-top: 15px;">
+           🔗 NHẤN ĐỂ MỞ FANPAGE CHÍNH THỨC MỚI NHẤT!!!
+          </button>
+        </div>
+      </div>
+
+      <!-- Global message display (used for loading and success) -->
+      <div class="msg" id="sheetGlobalMsg" style="margin-top:10px; text-align:center;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Settings Modal -->
+<div class="sheet-backdrop" id="settingsBackdrop" aria-hidden="true">
+  <div class="sheet" role="dialog" aria-modal="true" aria-label="Cài đặt">
+    <div class="title">⚙️ CÀI ĐẶT HỆ THỐNG</div>
+    
+    <div style="padding:10px 0; border-bottom:1px solid #333; margin-bottom:10px;">
+        <label style="display:flex; justify-content:space-between; align-items:center; font-weight:700;">
+            Ẩn Hộp Tin Nhắn (Chatbox)
+            <input type="checkbox" id="toggleChatDisplay" style="width:20px; height:20px;">
+        </label>
+        <p class="msg" style="margin-top:5px;">Tắt/Bật phần chat và input tin nhắn ở phía trên.</p>
+    </div>
+
+    <div style="padding:10px 0;">
+        <label style="display:flex; justify-content:space-between; align-items:center; font-weight:700;">
+            Tắt Thông Báo Hệ Thống (Mute)
+            <input type="checkbox" id="toggleSysNotifs" style="width:20px; height:20px;">
+        </label>
+        <p class="msg" style="margin-top:5px;">Tắt các tin nhắn thông báo về kết quả cược, nạp/rút tiền, lỗi hệ thống.</p>
+    </div>
+
+    <button id="closeSettings" class="btn" style="background:#3498db; color:#fff; width:100%; margin-top:15px;">Đóng</button>
+  </div>
+</div>
+
+<!-- Overlay Message for /t command -->
+<div id="overlay-message" style="
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 15px 30px;
+  background: rgba(0, 0, 0, 0.9);
+  color: var(--accent);
+  font-size: 28px;
+  font-weight: 900;
+  z-index: 1000;
+  border-radius: 12px;
+  box-shadow: 0 0 20px rgba(245,200,66,0.5);
+  display: none;
+  pointer-events: none;
+  text-align: center;
+"></div>
+
+<script>
+/* ========= Core variables & DOM ========= */
+const $ = id => document.getElementById(id);
+const d1 = $('d1'), d2 = $('d2'), d3 = $('d3');
+const resultEl = $('result'), timerEl = $('timer'), balanceEl = $('balance'), hdrBalance = $('hdrBalance');
+const amtTai = $('amt-tai'), amtXiu = $('amt-xiu'), jackpotEl = $('jackpot');
+const pickTai = $('pick-tai'), pickXiu = $('pick-xiu');
+const chips = Array.from(document.querySelectorAll('.chip[data-value]'));
+const allinBtn = $('allin'), resetBtn = $('reset'), placeBtn = $('place'), cancelBtn = $('cancel');
+const chatboxEl = $('chatbox'); 
+const controlsEl = $('controls');
+const chatlog = $('chatlog'), chatinput = $('chatinput'), sendChat = $('sendChat');
+const sideTai = $('side-tai'), sideXiu = $('side-xiu');
+const customBetInput = $('customBetInput');
+const addCustomBet = $('addCustomBet');
+const overlayMsg = $('overlay-message');
+const mainGameArea = $('mainGameArea'); // Reference to the new scrollable area
+
+// Transaction/Deposit/Withdraw Elements
+const openTransaction = $('openTransaction'); 
+const transactionBackdrop = $('transactionBackdrop'); 
+const presetButtons = $('presetButtons');
+const btnOther = $('btnOther');
+const otherAmount = $('otherAmount');
+const sheetGlobalMsg = $('sheetGlobalMsg'); 
+
+// Tab references
+const tabDeposit = $('tabDeposit');
+const tabWithdraw = $('tabWithdraw');
+const tabSupport = $('tabSupport');
+const tabContents = { deposit: $('deposit-tab'), withdraw: $('withdraw-tab'), support: $('support-tab') };
+const tabButtons = { deposit: tabDeposit, withdraw: tabWithdraw, support: tabSupport };
+
+// Deposit UI elements (used in transactionBackdrop)
+const depositStateAmount = $('deposit-state-amount');
+const depositStateCard = $('deposit-state-card');
+const depositStateTransfer = $('deposit-state-transfer');
+const selectCard = $('selectCard');
+const selectTransfer = $('selectTransfer');
+const carrierSelect = $('carrierSelect');
+const carrierDisplay = $('carrierDisplay');
+const cardMsg = $('cardMsg');
+const cardSeri = $('cardSeri');
+const cardCode = $('cardCode');
+const backFromCard = $('backFromCard');
+const submitCard = $('submitCard');
+const transferAmountDisplay = $('transferAmountDisplay');
+const cancelTransfer = $('cancelTransfer');
+const completeTransfer = $('completeTransfer');
+
+// Withdraw UI elements
+const withdrawAmountInput = $('withdrawAmountInput');
+const withdrawAccountInput = $('withdrawAccountInput');
+const submitWithdraw = $('submitWithdraw');
+const currentBalanceWithdraw = $('currentBalanceWithdraw');
+
+// Support UI element
+const supportLinkBtn = $('supportLinkBtn');
+
+// Pattern Toggle Elements
+const togglePattern = $('togglePattern');
+const patternDetails = $('patternDetails');
+const patternChart = $('patternChart');
+const CICLE_MAX_LENGTH = 50;
+const cicleDisplay = $('cicleDisplay');
+
+// Settings Elements
+const openSettingsBelow = $('openSettingsBelow');
+const settingsBackdrop = $('settingsBackdrop');
+const closeSettings = $('closeSettings');
+const toggleChatDisplay = $('toggleChatDisplay');
+const toggleSysNotifs = $('toggleSysNotifs');
+const resultOverlay = $('resultOverlay');
+
+
+let balance = 1000000;
+let pot = { tai: 0, xiu: 0 };
+let betSide = null, betVal = 0;
+let faces = ['⚀','⚁','⚂','⚃','⚄','⚅'];
+let roundTimer = 60, roundInterval = null; 
+let isLocked = false, isRolling = false;
+let jackpotChance = 1/5000;
+let ctx = null;
+
+// Deposit/Transaction State Variables
+let depositState = 'amount'; 
+let selectedDepositAmount = 0;
+let selectedCarrier = null;
+let paying = false; 
+let currentTab = 'deposit';
+
+// Dice Cup / Reveal Variables
+const diceCup = $('diceCup');
+let isDiceRevealed = false; // New flag for dice visibility (after drag/tap)
+let finalRollResult = null;
+let isDragging = false;
+let dragStartX = 0; 
+let dragStartY = 0;
+
+// Drag constants (based on 180x180 cup in 230x90 container)
+const CUP_WIDTH = 180;
+const CUP_HEIGHT = 180;
+const CONTAINER_WIDTH = 230;
+const CONTAINER_HEIGHT = 90;
+// Adjusted initial top position (was -45px) to move cup down slightly, ensuring result is clear.
+const cupInitialLeft = (CONTAINER_WIDTH - CUP_WIDTH) / 2; // 25px
+const cupInitialTop = (CONTAINER_HEIGHT - CUP_HEIGHT) / 2 + 10; // -35px
+const dragContainer = $('diceContainer');
+
+// Drag distance threshold
+const REVEAL_THRESHOLD = 100; // Increased to 100px
+
+let cicleHistory = []; 
+let isPatternVisible = false;
+
+// Settings State
+let isChatVisible = true;
+let isSystemMuted = false;
+
+
+/* ======= Helpers ======= */
+function fmt(n){ return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ","); }
+function updateUI(){
+  balanceEl.textContent = fmt(balance);
+  hdrBalance.textContent = fmt(balance) + '₫';
+  amtTai.textContent = fmt(pot.tai);
+  amtXiu.textContent = fmt(pot.xiu);
+  timerEl.textContent = roundTimer > -1 ? roundTimer : '-';
+  currentBalanceWithdraw.textContent = fmt(balance) + '₫'; 
+  
+  controlsEl.classList.toggle('locked-controls', isLocked);
+  
+  // Re-render chart and history if pattern is visible
+  if (isPatternVisible) {
+      renderPatternChart();
+      updateCicleDisplay();
+  }
+}
+
+function chat(msg, isSystem = true){
+  if(isSystem && isSystemMuted) return; 
+  const div = document.createElement('div');
+  div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+  chatlog.appendChild(div);
+  chatlog.scrollTop = chatlog.scrollHeight;
+}
+
+function alert(msg){
+  chat(`⚠️ THÔNG BÁO: ${msg}`, true);
+}
+
+function ensureAudio(){
+  if(!ctx){
+    try{ ctx = new (window.AudioContext || window.webkitAudioContext)(); }
+    catch(e){ ctx = null; }
+  }
+}
+function playTing(){
+  ensureAudio();
+  if(!ctx) return;
+  const o = ctx.createOscillator(), g = ctx.createGain();
+  o.type = 'sine'; o.frequency.value = 880;
+  g.gain.setValueAtTime(0.0001, ctx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.18, ctx.currentTime + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.5);
+  o.connect(g); g.connect(ctx.destination);
+  o.start(); o.stop(ctx.currentTime + 0.5);
+}
+
+/* ========== Chat & Commands ========== */
+sendChat.addEventListener('click', ()=>{
+  const v = chatinput.value.trim();
+  if(!v) return;
+
+  if(v === '/check'){
+    roundTimer = 1;
+    updateUI();
+    chat(`📢 Hệ thống: Đã chuyển thời gian về 1s theo yêu cầu (/check).`);
+    chatinput.value = '';
+    return;
+  } else if(v.startsWith('/t ')){
+    const customText = v.substring(3).trim();
+    if(customText){
+      overlayMsg.textContent = customText;
+      overlayMsg.style.display = 'block';
+      setTimeout(() => { overlayMsg.style.display = 'none'; }, 3000); 
+      chat(`📢 Hệ thống: Đã in "${customText}" lên màn hình.`); 
+      chatinput.value = '';
+      return;
+    }
+  }
+
+  chat(`💬 Bạn: ${v}`, false); // Not a system message
+  chatinput.value = '';
+});
+chatinput.addEventListener('keydown', e=>{ if(e.key==='Enter') sendChat.click(); });
+
+
+/* ====== Settings Logic ====== */
+
+function handleSettingsUpdate(){
+    isChatVisible = !toggleChatDisplay.checked;
+    isSystemMuted = toggleSysNotifs.checked;
+
+    if (isChatVisible) {
+        chatboxEl.classList.remove('hidden-chat');
+        // If chat is shown, scroll to bottom of the game area just in case it pushed controls down
+        mainGameArea.scrollTop = mainGameArea.scrollHeight; 
+    } else {
+        chatboxEl.classList.add('hidden-chat');
+    }
+    chat(`📢 Hệ thống: Hộp chat ${isChatVisible ? 'đã bật' : 'đã ẩn'}. Thông báo hệ thống ${isSystemMuted ? 'đã tắt' : 'đã bật'}.`);
+}
+
+openSettingsBelow.addEventListener('click', ()=>{
+    // Initialize settings based on current state
+    toggleChatDisplay.checked = !isChatVisible;
+    toggleSysNotifs.checked = isSystemMuted;
+    settingsBackdrop.style.display = 'flex';
+    settingsBackdrop.setAttribute('aria-hidden','false');
+});
+
+closeSettings.addEventListener('click', ()=>{
+    settingsBackdrop.style.display = 'none';
+    settingsBackdrop.setAttribute('aria-hidden','true');
+    handleSettingsUpdate();
+});
+
+toggleChatDisplay.addEventListener('change', handleSettingsUpdate);
+toggleSysNotifs.addEventListener('change', handleSettingsUpdate);
+
+settingsBackdrop.addEventListener('click', (e)=>{
+  if(e.target === settingsBackdrop) {
+      settingsBackdrop.style.display = 'none';
+      settingsBackdrop.setAttribute('aria-hidden','true');
+      handleSettingsUpdate();
+  }
+});
+
+
+/* ====== Cầu History (Pattern) Logic (unchanged) ====== */
+function generateInitialHistory(length = 30) {
+    const history = [];
+    for (let i = 0; i < length; i++) {
+        history.unshift(Math.random() > 0.5 ? 'T' : 'X');
+    }
+    return history;
+}
+
+function updateCicleDisplay(){
+  if (!isPatternVisible) return; 
+  
+  cicleDisplay.innerHTML = cicleHistory.slice(0, 20).reverse().map(r => { 
+    let colorClass, label;
+    if(r === 'T'){ colorClass = 'cicle-item-T'; label = 'T'; } 
+    else if (r === 'X'){ colorClass = 'cicle-item-X'; label = 'X'; } 
+    else { colorClass = 'cicle-item-U'; label = '?'; }
+
+    return `
+      <div class="${colorClass}" style="
+        flex-shrink: 0; width: 24px; height: 24px; border-radius: 50%; 
+        color: #fff; font-size: 14px; font-weight: 700; 
+        display: flex; align-items: center; justify-content: center;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+      " title="Kết quả: ${r === 'T' ? 'Tài' : 'Xỉu'}">${label}</div>
+    `;
+  }).join('');
+}
+
+function resizePatternChart() {
+    const container = patternChart.parentNode;
+    if (container && patternDetails.style.display !== 'none') {
+        patternChart.width = container.clientWidth - 10; 
+    }
+}
+
+function renderPatternChart() {
+    if (!isPatternVisible || !patternChart.getContext) return;
+    
+    resizePatternChart(); 
+
+    const ctx = patternChart.getContext('2d');
+    const chartWidth = patternChart.width;
+    const chartHeight = patternChart.height;
+    const paddingY = 10;
+    const resultsToShow = 20;
+    
+    ctx.clearRect(0, 0, chartWidth, chartHeight);
+    
+    const recentHistory = cicleHistory.slice(0, resultsToShow).reverse();
+    
+    let trend = 0;
+    const trendData = [0];
+    recentHistory.forEach(result => {
+        if (result === 'T') trend += 1;
+        else if (result === 'X') trend -= 1;
+        trendData.push(trend);
+    });
+
+    const maxAbsTrend = 5; 
+    const numPoints = resultsToShow + 1;
+    const stepX = chartWidth / (numPoints);
+    const middleY = chartHeight / 2;
+    const scaleY = (chartHeight - 2 * paddingY) / (2 * maxAbsTrend);
+
+    // 1. Draw Middle Line (0-axis)
+    ctx.beginPath();
+    ctx.strokeStyle = '#444';
+    ctx.lineWidth = 1;
+    ctx.moveTo(0, middleY);
+    ctx.lineTo(chartWidth, middleY);
+    ctx.stroke();
+
+    // 2. Draw Trend Line
+    ctx.beginPath();
+    ctx.strokeStyle = '#f5c842';
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    for (let i = 0; i < trendData.length; i++) {
+        const x = (i * stepX) + (stepX / 2);
+        let y = middleY + (trendData[i] * -scaleY);
+        if (y < paddingY) y = paddingY;
+        if (y > chartHeight - paddingY) y = chartHeight - paddingY;
+
+        if (i === 0) {
+            ctx.moveTo(x, middleY);
+        } else {
+            ctx.lineTo(x, y);
+        }
+    }
+    ctx.stroke();
+
+    // 3. Draw Dots and Colors
+    for (let i = 1; i < trendData.length; i++) {
+        const x = (i * stepX) + (stepX / 2);
+        let y = middleY + (trendData[i] * -scaleY);
+        if (y < paddingY) y = paddingY;
+        if (y > chartHeight - paddingY) y = chartHeight - paddingY;
+
+        const result = recentHistory[i - 1]; 
+        ctx.fillStyle = result === 'T' ? '#e74c3c' : '#3498db'; 
+        
+        ctx.beginPath();
+        ctx.arc(x, y, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+    }
+}
+
+togglePattern.addEventListener('click', () => {
+    isPatternVisible = !isPatternVisible;
+    if (isPatternVisible) {
+        patternDetails.style.display = 'block';
+        togglePattern.textContent = 'ẨN CẦU BỆT'
+        togglePattern.classList.add('active'); 
+        updateUI();
+    } else {
+        patternDetails.style.display = 'none';
+        togglePattern.textContent = 'XEM CẦU BỆT'
+        togglePattern.classList.remove('active'); 
+    }
+});
+window.addEventListener('resize', updateUI); 
+
+/* ====== Betting controls and core logic (mostly unchanged) ====== */
+
+function setBetControls(enabled){
+  chips.forEach(c => c.disabled = !enabled);
+  pickTai.disabled = !enabled;
+  pickXiu.disabled = !enabled;
+  allinBtn.disabled = !enabled;
+  resetBtn.disabled = !enabled;
+  cancelBtn.disabled = !enabled;
+  placeBtn.disabled = !enabled;
+  customBetInput.disabled = !enabled; 
+  addCustomBet.disabled = !enabled;
+}
+
+function pickSide(side){
+  if(isLocked || isRolling) return;
+  if(betSide && betSide !== side){
+    balance += pot[betSide];
+    pot[betSide] = 0;
+    betVal = 0;
+  }
+  betSide = side;
+  sideTai.classList.toggle('active', betSide === 'tai');
+  sideXiu.classList.toggle('active', betSide === 'xiu');
+  updateUI();
+}
+pickTai.addEventListener('click', ()=> pickSide('tai'));
+pickXiu.addEventListener('click', ()=> pickSide('xiu'));
+
+chips.forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    if(isLocked || isRolling) return alert('Đang khoá cược — chờ vòng kết thúc.');
+    if(!betSide) return alert('Chọn Tài hoặc Xỉu trước khi đặt chip.');
+    const v = parseInt(btn.dataset.value, 10);
+    if(balance < betVal + v) return alert('Không đủ tiền.');
+    betVal += v;
+    pot[betSide] += v;
+    updateUI();
+  });
+});
+
+addCustomBet.addEventListener('click', ()=>{
+    if(isLocked || isRolling) return alert('Đang khoá cược — chờ vòng kết thúc.');
+    if(!betSide) return alert('Chọn Tài hoặc Xỉu trước khi đặt chip.');
+    
+    const v = parseInt(customBetInput.value || 0, 10);
+    
+    if(v < 1000) return alert('Số tiền cược tối thiểu là 1K.');
+    if(v > 1000000000) return alert('Số tiền cược tối đa là 1 Tỷ.'); 
+    
+    if(balance < betVal + v) return alert('Không đủ tiền.');
+    
+    betVal += v;
+    pot[betSide] += v;
+    customBetInput.value = '';
+    updateUI();
+});
+
+allinBtn.addEventListener('click', ()=>{
+  if(isLocked || isRolling) return alert('Đang khoá cược — chờ vòng kết thúc.');
+  if(!betSide) return alert('Chọn Tài hoặc Xỉu trước khi đặt all-in.');
+  const v = balance - betVal;
+  if(v <= 0) return alert('Không còn tiền để all-in.');
+  betVal += v; pot[betSide] += v; updateUI();
+});
+resetBtn.addEventListener('click', ()=>{
+  if(isLocked || isRolling) return alert('Đang khoá cược — không thể reset bây giờ.');
+  if(!betSide) return alert('Chọn Tài/Xỉu trước khi reset.');
+  pot[betSide] = 0; betVal = 0; updateUI();
+});
+cancelBtn.addEventListener('click', ()=>{
+  if(isLocked || isRolling) return alert('Đang khoá cược — không thể huỷ bây giờ.');
+  pot = { tai:0, xiu:0 }; betVal = 0; betSide = null;
+  sideTai.classList.remove('active'); sideXiu.classList.remove('active'); updateUI();
+});
+
+placeBtn.addEventListener('click', ()=>{
+  if(isLocked || isRolling) return alert('Đang khoá cược — không thể đặt thêm.');
+  if(betVal <= 0) return alert('Chưa đặt tiền.');
+  
+  balance -= betVal; 
+  updateUI();
+  isLocked = true;
+  setBetControls(false);
+  chat('✅ Bạn đã xác nhận cược — chờ hết thời gian vòng để lắc.');
+});
+
+function startRoundTimer(forcePayout = false){
+  // Check if result needs to be revealed from the previous round
+  if(forcePayout && !isDiceRevealed && finalRollResult){
+      chat('📢 Hệ thống: Vòng trước chưa mở kết quả. Tự động mở và xử lý tiền thưởng.');
+      // Force reveal dice and result (since they are now tied to dice reveal)
+      handleDiceReveal(true); 
+      // Wait for payout animation before starting new round
+      setTimeout(() => {
+          setupNewRound();
+      }, 1200); 
+      return;
+  }
+  setupNewRound();
+}
+
+function setupNewRound(){
+  // Reset for new round
+  finalRollResult = null;
+  isDiceRevealed = false;
+  isRolling = false;
+  isLocked = false;
+  
+  diceCup.classList.remove('hidden');
+  // Set initial position using the fixed left/top variables
+  diceCup.style.left = `${cupInitialLeft}px`; 
+  diceCup.style.top = `${cupInitialTop}px`; 
+  resultEl.textContent = 'Kết quả: -'; // Reset to hidden result
+  setBetControls(true);
+  
+  if(roundInterval) clearInterval(roundInterval);
+  roundTimer = 60; 
+  updateUI();
+  roundInterval = setInterval(()=>{
+    roundTimer--;
+    if(roundTimer <= 1 && !isLocked && !isRolling){
+      const pending = (pot.tai + pot.xiu);
+      if(pending > 0){
+        balance -= pending;
+        chat(`✅ Hệ thống tự khóa & chấp nhận cược ${fmt(pending)}₫ (còn ≤1s).`);
+        updateUI();
+      } else {
+        chat('⛔ Hệ thống tự khóa (không có cược).');
+      }
+      isLocked = true;
+      setBetControls(false);
+    }
+    updateUI();
+    if(roundTimer <= 0){
+      clearInterval(roundInterval);
+      roundInterval = null;
+      startRollSequence();
+    }
+  }, 1000);
+}
+
+function playRollSound(){
+  ensureAudio();
+  if(!ctx) return;
+  const o = ctx.createOscillator(), g = ctx.createGain();
+  o.type='sawtooth';
+  o.frequency.setValueAtTime(200 + Math.random()*300, ctx.currentTime);
+  g.gain.setValueAtTime(0.0001, ctx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.08, ctx.currentTime + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.35);
+  o.connect(g); g.connect(ctx.destination);
+  o.start(); o.stop(ctx.currentTime + 0.35);
+}
+function playWinSound(){
+  ensureAudio();
+  if(!ctx) return;
+  const o = ctx.createOscillator(), g = ctx.createGain();
+  o.type='sine'; o.frequency.setValueAtTime(880, ctx.currentTime);
+  g.gain.setValueAtTime(0.0001, ctx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.12, ctx.currentTime + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.7);
+  o.connect(g); g.connect(ctx.destination);
+  o.start(); o.stop(ctx.currentTime + 0.7);
+}
+function vibrate(pattern){ if(navigator.vibrate) try{ navigator.vibrate(pattern); }catch(e){} }
+
+function startRollSequence(){
+  isRolling = true;
+  vibrate([80,30,80]);
+  chat('🎲 Đang lắc xúc xắc...');
+  let ticks = 0;
+  const tickMax = 20; 
+  const anim = setInterval(()=>{
+    d1.textContent = faces[Math.floor(Math.random()*6)];
+    d2.textContent = faces[Math.floor(Math.random()*6)];
+    d3.textContent = faces[Math.floor(Math.random()*6)];
+    playRollSound();
+    if(++ticks >= tickMax){ 
+        clearInterval(anim); 
+        finalizeRoll(); 
+    }
+  }, 80);
+}
+
+function finalizeRoll(){
+  const r1 = rand(), r2 = rand(), r3 = rand();
+  d1.textContent = faces[r1-1];
+  d2.textContent = faces[r2-1];
+  d3.textContent = faces[r3-1];
+  const sum = r1 + r2 + r3;
+  const isTriple = (r1===r2 && r2===r3);
+  const side = sum <= 10 ? 'xiu' : 'tai';
+  
+  // Store the result data
+  finalRollResult = { r1, r2, r3, sum, isTriple, side };
+  
+  // Display only the placeholder/sum if desired, but here we hide the outcome entirely.
+  resultEl.textContent = `Kết quả: -`; 
+
+  diceCup.style.left = `${cupInitialLeft}px`; 
+  diceCup.style.top = `${cupInitialTop}px`; 
+  diceCup.classList.remove('hidden');
+  
+  isRolling = false;
+}
+
+// Handler for moving the cup to reveal DICES AND THE FINAL RESULT/PAYOUT
+function handleDiceReveal(force = false){
+    if(isDiceRevealed) return;
+    if(!finalRollResult) return; // Should not happen but safety check
+
+    // Hide the cup, revealing the dice 
+    diceCup.classList.add('hidden');
+    isDiceRevealed = true;
+
+    // Display final outcome
+    const sideText = finalRollResult.side === 'tai' ? 'TÀI' : 'XỈU';
+    // Showing both sum and side now
+    resultEl.textContent = `Kết quả: ${finalRollResult.sum} → ${sideText}`; 
+
+    // Trigger payout
+    applyPayouts(finalRollResult);
+
+    if (!force) {
+        setTimeout(()=>{
+            startRoundTimer(false); 
+        }, 1200);
+    }
+}
+
+
+function applyPayouts(result){
+  const { r1, r2, r3, sum, isTriple, side } = result;
+  
+  const placedTai = pot.tai;
+  const placedXiu = pot.xiu;
+  
+  const resultChar = side === 'tai' ? 'T' : 'X';
+  cicleHistory.unshift(resultChar);
+  if(cicleHistory.length > CICLE_MAX_LENGTH) cicleHistory.pop();
+  updateUI();
+
+  if(isTriple){
+    chat('🔒 Tam hoa! Nhà cái ăn hết vòng này.');
+    playLossFeedback();
+  } else {
+    if(placedTai > 0 && side === 'tai'){
+      const win = placedTai * 2;
+      balance += win;
+      chat(`🎉 Tài thắng! Bạn nhận +${fmt(win)}₫`);
+      playWinSound(); vibrate([120]);
+    } else if(placedXiu > 0 && side === 'xiu'){
+      const win = placedXiu * 2;
+      balance += win;
+      chat(`🎉 Xỉu thắng! Bạn nhận +${fmt(win)}₫`);
+      playWinSound(); vibrate([120]);
+    } else {
+      if(placedTai + placedXiu > 0){
+        chat(`💸 Cược thất bại: mất ${fmt(placedTai+placedXiu)}₫`);
+        playLossFeedback();
+      }
+    }
+  }
+
+  // Jackpot
+  if(Math.random() < jackpotChance){
+    const j = 10000000;
+    balance += j;
+    jackpotEl.textContent = `💥 NỔ HŨ +${fmt(j)}₫ 💥`;
+    chat(`💥 NỔ HŨ! Bạn nhận +${fmt(j)}₫`);
+    playWinSound(); vibrate([200,80,200]);
+    setTimeout(()=>jackpotEl.textContent = '', 7000);
+  } else jackpotEl.textContent = '';
+
+  pot = { tai:0, xiu:0 };
+  betVal = 0; betSide = null;
+  sideTai.classList.remove('active'); sideXiu.classList.remove('active');
+  updateUI();
+}
+
+function playLossFeedback(){
+  ensureAudio();
+  if(!ctx) return;
+  const o = ctx.createOscillator(), g = ctx.createGain();
+  o.type='sawtooth'; o.frequency.setValueAtTime(200, ctx.currentTime);
+  g.gain.setValueAtTime(0.0001, ctx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.06, ctx.currentTime + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.45);
+  o.connect(g); g.connect(ctx.destination);
+  o.start(); o.stop(ctx.currentTime + 0.45);
+}
+
+function rand(){ return Math.floor(Math.random()*6) + 1; }
+
+/* Dice Cup Drag/Touch Logic (Final, Absolute Positioning) */
+
+// Sets the initial left/top position for the cup
+diceCup.style.left = `${cupInitialLeft}px`;
+diceCup.style.top = `${cupInitialTop}px`;
+
+function startDrag(e){
+    // CRITICAL: Check if result is available to be revealed
+    if(isDiceRevealed || isRolling || !finalRollResult) return;
+    
+    // Get starting coordinates based on event type
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+    isDragging = true;
+    diceCup.style.cursor = 'grabbing';
+    diceCup.style.transition = 'none'; // Disable transition for drag
+
+    // Get cup's current position relative to its parent (using computed style)
+    const currentLeft = parseFloat(diceCup.style.left || cupInitialLeft);
+    const currentTop = parseFloat(diceCup.style.top || cupInitialTop);
+    
+    const containerRect = dragContainer.getBoundingClientRect();
+    
+    // dragStartX/Y is the offset of the pointer *relative to the cup's top-left corner*
+    dragStartX = clientX - containerRect.left - currentLeft;
+    dragStartY = clientY - containerRect.top - currentTop;
+}
+
+function duringDrag(e){
+    if(!isDragging) return;
+    e.preventDefault(); 
+
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    
+    const containerRect = dragContainer.getBoundingClientRect();
+
+    // Calculate new top-left position relative to the PARENT (diceContainer)
+    let newLeft = clientX - containerRect.left - dragStartX;
+    let newTop = clientY - containerRect.top - dragStartY;
+
+    // Clamp the cup's top-left position to the parent's boundaries (with some overflow allowed)
+    const padding = 10;
+    const minLeft = -CUP_WIDTH + padding;
+    const maxLeft = CONTAINER_WIDTH - padding;
+    const minTop = -CUP_HEIGHT + padding;
+    const maxTop = CONTAINER_HEIGHT - padding;
+
+    newLeft = Math.max(minLeft, Math.min(newLeft, maxLeft));
+    newTop = Math.max(minTop, Math.min(newTop, maxTop));
+
+    diceCup.style.left = `${newLeft}px`;
+    diceCup.style.top = `${newTop}px`;
+    
+    // --- Check for Reveal Threshold ---
+    // Cup's current center relative to parent top-left
+    const cupCenterX = newLeft + CUP_WIDTH / 2;
+    const cupCenterY = newTop + CUP_HEIGHT / 2;
+    
+    // Dice circle's center relative to parent top-left
+    const diceCenterX = CONTAINER_WIDTH / 2;
+    const diceCenterY = CONTAINER_HEIGHT / 2;
+    
+    // Calculate distance from center of dice area
+    const distance = Math.sqrt(Math.pow(cupCenterX - diceCenterX, 2) + Math.pow(cupCenterY - diceCenterY, 2));
+
+    if (distance > REVEAL_THRESHOLD) { 
+        endDrag(e);
+        handleDiceReveal(); // Reveal dice and final result/payout
+    }
+}
+
+function endDrag(e){
+    if(!isDragging) return;
+    isDragging = false;
+    diceCup.style.cursor = 'grab';
+    diceCup.style.transition = 'left 0.3s ease, top 0.3s ease';
+    
+    if (!isDiceRevealed) {
+         // Snap back to initial centered position
+         diceCup.style.left = `${cupInitialLeft}px`;
+         diceCup.style.top = `${cupInitialTop}px`;
+    }
+}
+
+// Mouse events
+diceCup.addEventListener('mousedown', startDrag);
+document.addEventListener('mousemove', duringDrag);
+document.addEventListener('mouseup', endDrag);
+
+// Touch events (passive: false is crucial for preventDefault on touchmove)
+diceCup.addEventListener('touchstart', (e) => {
+    startDrag(e);
+}, { passive: false }); 
+document.addEventListener('touchmove', duringDrag, { passive: false });
+document.addEventListener('touchend', endDrag);
+
+// Reveal on click (alternative to drag - attached to cup directly)
+diceCup.addEventListener('click', (e) => {
+    // Check if it was a simple click and not a drag attempt
+    if (!isDragging && !isDiceRevealed && finalRollResult) {
+        handleDiceReveal();
+    }
+});
+
+
+/* Transaction Sheet Logic (Fixed) */
+function setSheetTab(tabName){
+    paying = false; 
+    currentTab = tabName;
+    depositState = 'amount';
+    
+    Object.keys(tabContents).forEach(key => {
+        tabContents[key].style.display = 'none';
+        tabButtons[key].classList.remove('tab-btn-active');
+    });
+    
+    if(tabContents[tabName]){
+        tabContents[tabName].style.display = 'block';
+        tabButtons[tabName].classList.add('tab-btn-active');
+    }
+
+    if(tabName === 'deposit'){
+        setDepositState('amount');
+        sheetGlobalMsg.textContent = 'Chọn mệnh giá và phương thức để nạp tiền vào game.';
+    } else if(tabName === 'withdraw'){
+        withdrawAmountInput.value = '';
+        withdrawAccountInput.value = '';
+        submitWithdraw.disabled = false; 
+        sheetGlobalMsg.textContent = 'Yêu cầu rút tiền sẽ được xử lý trong 5-15 phút.';
+        updateUI(); 
+    } else if(tabName === 'support'){
+        sheetGlobalMsg.textContent = 'Chúng tôi sẽ hỗ trợ bạn ngay lập tức.';
+    }
+}
+
+openTransaction.addEventListener('click', ()=>{ 
+  // Reset states before opening
+  paying = false;
+  otherAmount.value = '';
+  selectedDepositAmount = 0;
+  selectedCarrier = null;
+  carrierDisplay.textContent = '(Chưa chọn)';
+  presetButtons.querySelectorAll('button').forEach(x=> x.style.outline = 'none');
+  carrierSelect.querySelectorAll('button').forEach(b => b.classList.remove('selected'));
+  
+  transactionBackdrop.style.display = 'flex';
+  transactionBackdrop.setAttribute('aria-hidden','false');
+  setSheetTab('deposit');
+});
+
+transactionBackdrop.addEventListener('click', (e)=>{
+  // Check if target is the backdrop and not an element inside the sheet
+  if(e.target === transactionBackdrop) {
+      transactionBackdrop.style.display = 'none';
+      transactionBackdrop.setAttribute('aria-hidden','true');
+  }
+});
+
+// Attach tab click listeners
+tabDeposit.addEventListener('click', () => setSheetTab('deposit'));
+tabWithdraw.addEventListener('click', () => setSheetTab('withdraw'));
+tabSupport.addEventListener('click', () => setSheetTab('support'));
+
+function setDepositState(newState){
+    depositState = newState;
+    depositStateAmount.style.display = 'none';
+    depositStateCard.style.display = 'none';
+    depositStateTransfer.style.display = 'none';
+    sheetGlobalMsg.textContent = '';
+
+    if(newState === 'amount'){
+        depositStateAmount.style.display = 'block';
+        sheetGlobalMsg.textContent = 'Chọn mệnh giá hoặc nhập số, sau đó chọn phương thức thanh toán.';
+    } else if(newState === 'card'){
+        depositStateCard.style.display = 'block';
+        cardMsg.textContent = `Nạp thẻ cào ${fmt(selectedDepositAmount)}₫. Vui lòng chọn nhà mạng và nhập thông tin thẻ.`;
+        submitCard.disabled = paying;
+        backFromCard.disabled = paying;
+    } else if(newState === 'transfer'){
+        depositStateTransfer.style.display = 'block';
+        transferAmountDisplay.textContent = fmt(selectedDepositAmount) + '₫';
+        cancelTransfer.disabled = paying;
+        completeTransfer.disabled = paying;
+        sheetGlobalMsg.textContent = 'Bạn cần chuyển khoản thành công trước khi nhấn HOÀN THÀNH';
+    } else if(newState === 'loading'){
+        sheetGlobalMsg.innerHTML = '<span class="loader" aria-hidden="true"></span> Đang xử lý giao dịch...';
+    }
+}
+
+function updateSelectedAmount(amount){
+    selectedDepositAmount = amount;
+    otherAmount.value = amount;
+    presetButtons.querySelectorAll('button').forEach(x=> {
+        x.style.outline = 'none';
+        if(parseInt(x.dataset.amount, 10) === amount){
+            x.style.outline = '3px solid rgba(245,200,66,0.18)';
+        }
+    });
+    sheetGlobalMsg.textContent = `Đã chọn ${fmt(selectedDepositAmount)}₫. Chọn phương thức thanh toán.`;
+}
+
+presetButtons.querySelectorAll('button').forEach(b=>{
+  b.addEventListener('click', ()=> updateSelectedAmount(parseInt(b.dataset.amount, 10)));
+});
+
+btnOther.addEventListener('click', ()=>{ otherAmount.focus(); });
+otherAmount.addEventListener('input', ()=>{
+    const v = parseInt(otherAmount.value || 0, 10);
+    if(v > 0) updateSelectedAmount(v);
+    else selectedDepositAmount = 0;
+});
+
+selectCard.addEventListener('click', ()=>{
+    if(selectedDepositAmount <= 0) return alert('Vui lòng chọn hoặc nhập số tiền nạp trước.');
+    cardSeri.value = '';
+    cardCode.value = '';
+    setDepositState('card');
+});
+selectTransfer.addEventListener('click', ()=>{
+    if(selectedDepositAmount <= 0) return alert('Vui lòng chọn hoặc nhập số tiền nạp trước.');
+    setDepositState('transfer');
+});
+backFromCard.addEventListener('click', ()=> setDepositState('amount'));
+
+carrierSelect.querySelectorAll('button').forEach(b=>{
+    b.addEventListener('click', ()=>{
+        selectedCarrier = b.dataset.carrier;
+        carrierSelect.querySelectorAll('button').forEach(x=> x.classList.remove('selected'));
+        b.classList.add('selected');
+        carrierDisplay.textContent = selectedCarrier;
+        cardMsg.textContent = `Nạp thẻ cào ${selectedCarrier} ${fmt(selectedDepositAmount)}₫. Nhập thông tin.`;
+    });
+});
+
+submitCard.addEventListener('click', async ()=>{
+  if(paying) return;
+  if(selectedDepositAmount <= 0) return alert('Lỗi: Chưa chọn số tiền nạp.');
+  if(!selectedCarrier) return alert('Vui lòng chọn nhà mạng.');
+  if(cardSeri.value.trim().length < 8) return alert('Số Seri phải có ít nhất 8 ký tự.');
+  if(cardCode.value.trim().length < 8) return alert('Mã Thẻ Cào phải có ít nhất 8 ký tự.');
+  
+  paying = true;
+  setDepositState('loading');
+  
+  await new Promise(r=>setTimeout(r, 3000));
+  
+  const v = selectedDepositAmount;
+  balance += v;
+  updateUI();
+  playTing();
+  chat(`💳 Nạp thẻ ${selectedCarrier} thành công +${fmt(v)}₫`);
+  sheetGlobalMsg.textContent = `✅ Nạp thành công +${fmt(v)}₫`;
+  
+  setTimeout(()=>{ 
+      paying = false; 
+      transactionBackdrop.style.display = 'none';
+      transactionBackdrop.setAttribute('aria-hidden','true');
+      setDepositState('amount'); // Reset deposit state
+  }, 900);
+});
+
+cancelTransfer.addEventListener('click', ()=> setDepositState('amount'));
+completeTransfer.addEventListener('click', async ()=>{
+  if(paying) return;
+  const v = selectedDepositAmount;
+  if(v <= 0) return alert('Lỗi: Chưa có số tiền được chọn cho giao dịch.');
+  chat(`📢 Hệ thống: [Xác nhận] Bạn có chắc chắn đã chuyển khoản thành công ${fmt(v)}₫ và muốn hoàn thành giao dịch không?`);
+  
+  paying = true;
+  setDepositState('loading');
+
+  await new Promise(r=>setTimeout(r, 1000));
+  
+  balance += v;
+  updateUI();
+  playTing();
+  chat(`💳 Giao dịch chuyển khoản +${fmt(v)}₫ được xác nhận.`);
+  sheetGlobalMsg.textContent = `✅ Xác nhận chuyển khoản thành công +${fmt(v)}₫`;
+  
+  setTimeout(()=>{ 
+      paying = false; 
+      transactionBackdrop.style.display = 'none';
+      transactionBackdrop.setAttribute('aria-hidden','true');
+      setDepositState('amount'); // Reset deposit state
+  }, 900);
+});
+
+// --- WITHDRAW LOGIC (FIXED) ---
+submitWithdraw.addEventListener('click', async ()=>{
+    if(paying || currentTab !== 'withdraw') return;
+    
+    const amount = parseInt(withdrawAmountInput.value || 0, 10);
+    const account = withdrawAccountInput.value.trim();
+
+    if(amount < 50000) return alert('Số tiền rút tối thiểu là 50K.');
+    if(amount > balance) return alert('Số dư không đủ để thực hiện giao dịch này.');
+    if(account.length < 5) return alert('Vui lòng nhập chính xác Số tài khoản/SĐT Ví (tối thiểu 5 ký tự).');
+
+    const fee = amount * 0.05;
+    const finalAmount = amount - fee;
+
+    chat(`📢 Hệ thống: [Xác nhận Rút] Bạn muốn rút ${fmt(amount)}₫ (Phí: ${fmt(fee)}₫, Thực nhận: ${fmt(finalAmount)}₫) về TK: ${account}?`);
+
+    paying = true;
+    sheetGlobalMsg.innerHTML = '<span class="loader" aria-hidden="true"></span> Đang xử lý yêu cầu rút...';
+    submitWithdraw.disabled = true;
+    withdrawAmountInput.disabled = true;
+    withdrawAccountInput.disabled = true;
+
+    await new Promise(r=>setTimeout(r, 3000));
+    
+    balance -= amount;
+    updateUI();
+    
+    chat(`💸 Yêu cầu rút ${fmt(amount)}₫ về ${account} đã được ghi nhận. Thực nhận: ${fmt(finalAmount)}₫`);
+    sheetGlobalMsg.textContent = `✅ Yêu cầu rút ${fmt(amount)}₫ đã được ghi nhận. Tiền sẽ về trong 5-15 phút.`;
+
+    setTimeout(()=>{ 
+        paying = false; 
+        transactionBackdrop.style.display = 'none';
+        transactionBackdrop.setAttribute('aria-hidden','true');
+    }, 1500);
+});
+
+
+/* Initial setup */
+cicleHistory = generateInitialHistory();
+// Force payout check on start, ensuring clean state if previous run crashed mid-reveal.
+startRoundTimer(true); 
+</script>
+</body>
+</html>
+
